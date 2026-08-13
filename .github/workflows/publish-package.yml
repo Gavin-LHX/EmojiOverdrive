@@ -24,10 +24,14 @@ jobs:
           sha256sum --check EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256
 
       - name: Install ORAS
-        uses: oras-project/setup-oras@v1
+        uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d
+        with:
+          version: 1.3.1
 
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GH_TOKEN" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
 
       - name: Publish IPA as OCI artifact
         run: |
@@ -41,7 +45,7 @@ jobs:
             --annotation "org.opencontainers.image.url=https://github.com/Gavin-LHX/EmojiOverdrive/releases/tag/v1.0.0-unsigned.1" \
             --annotation "org.opencontainers.image.licenses=MIT" \
             ghcr.io/gavin-lhx/emojioverdrive-ipa:1.0.0-build1-unsigned.1,latest-unsigned \
-            EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa:application/vnd.apple.ipa \
+            EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa:application/vnd.gavin-lhx.ios.ipa.layer.v1+zip \
             EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256:text/plain
 
       - name: Verify package manifest
