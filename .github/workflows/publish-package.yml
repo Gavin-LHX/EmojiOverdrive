@@ -1,0 +1,48 @@
+name: Publish IPA Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-oci-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download verified IPA from Release
+        env:
+          ASSET_URL: https://github.com/Gavin-LHX/EmojiOverdrive/releases/download/v1.0.0-unsigned.1/EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa
+          HASH_URL: https://github.com/Gavin-LHX/EmojiOverdrive/releases/download/v1.0.0-unsigned.1/EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256
+        run: |
+          curl --fail --location --retry 3 "$ASSET_URL" --output EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa
+          curl --fail --location --retry 3 "$HASH_URL" --output EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256
+          sha256sum --check EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256
+
+      - name: Install ORAS
+        uses: oras-project/setup-oras@v1
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | oras login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Publish IPA as OCI artifact
+        run: |
+          oras push \
+            --artifact-type application/vnd.gavin-lhx.ios.ipa.v1 \
+            --annotation "org.opencontainers.image.title=Emoji Overdrive unsigned IPA" \
+            --annotation "org.opencontainers.image.description=Unsigned iOS IPA; requires valid Apple signing before installation." \
+            --annotation "org.opencontainers.image.version=1.0.0-build1-unsigned.1" \
+            --annotation "org.opencontainers.image.revision=e3c17d5df1bd492e05ccf83198c5a4502664ccd7" \
+            --annotation "org.opencontainers.image.source=https://github.com/Gavin-LHX/EmojiOverdrive" \
+            --annotation "org.opencontainers.image.url=https://github.com/Gavin-LHX/EmojiOverdrive/releases/tag/v1.0.0-unsigned.1" \
+            --annotation "org.opencontainers.image.licenses=MIT" \
+            ghcr.io/gavin-lhx/emojioverdrive-ipa:1.0.0-build1-unsigned.1,latest-unsigned \
+            EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa:application/vnd.apple.ipa \
+            EmojiOverdrive-1.0.0-build1-ios-unsigned.ipa.sha256:text/plain
+
+      - name: Verify package manifest
+        run: oras manifest fetch ghcr.io/gavin-lhx/emojioverdrive-ipa:1.0.0-build1-unsigned.1
