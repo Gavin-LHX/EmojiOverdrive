@@ -25,16 +25,17 @@ jobs:
           build/validator-venv/bin/python scripts/validate_project.py
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
-      - name: Run simulator tests
+      - name: Compile for iOS Simulator
         run: |
           xcodebuild \
             -project EmojiOverdrive.xcodeproj \
             -scheme EmojiOverdrive \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/DerivedData-Simulator \
             CODE_SIGNING_ALLOWED=NO \
-            test
+            build-for-testing
       - name: Build unsigned device app
         run: |
           xcodebuild \

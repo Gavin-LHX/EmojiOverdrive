@@ -88,7 +88,7 @@ python scripts/validate_project.py
 
 ## GitHub Actions IPA
 
-仓库内的 `Build IPA` 工作流会在每次 push、pull request 或手动触发时运行静态验证、模拟器测试和真机 SDK 编译，然后上传 `EmojiOverdrive-unsigned-ipa` 构件。该 IPA 没有 Apple 签名，适合进一步重签或验证包结构，不能直接安装到普通未越狱 iPhone。可直接安装的 IPA 仍需 Apple Development/Distribution 证书及匹配的 provisioning profile；不要把证书密码或 `.p12` 文件提交到仓库。
+仓库内的 `Build IPA` 工作流会在每次 push、pull request 或手动触发时运行静态验证、iOS Simulator 编译验证和真机 SDK 编译，然后上传 `EmojiOverdrive-unsigned-ipa` 构件。它使用 generic simulator destination，避免托管 runner 因启动具体模拟器而卡住；XCTest 源码仍保留，真机或本地 Mac 上可运行完整测试。该 IPA 没有 Apple 签名，适合进一步重签或验证包结构，不能直接安装到普通未越狱 iPhone。可直接安装的 IPA 仍需 Apple Development/Distribution 证书及匹配的 provisioning profile；不要把证书密码或 `.p12` 文件提交到仓库。
 
 ## 真机验收清单
 
