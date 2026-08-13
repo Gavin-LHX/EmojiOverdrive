@@ -25,7 +25,6 @@ struct MetalBackgroundView: UIViewRepresentable {
             && !snapshot.dimFlashingLights
         let view = MTKView(frame: .zero, device: device)
         view.colorPixelFormat = .rgba16Float
-        view.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
         view.clearColor = MTLClearColorMake(0, 0, 0, 1)
         view.framebufferOnly = true
         view.preferredFramesPerSecond = 60
@@ -34,6 +33,7 @@ struct MetalBackgroundView: UIViewRepresentable {
         view.isOpaque = true
 
         if let layer = view.layer as? CAMetalLayer {
+            layer.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
             layer.wantsExtendedDynamicRangeContent = shouldRun && !snapshot.dimFlashingLights
         }
 

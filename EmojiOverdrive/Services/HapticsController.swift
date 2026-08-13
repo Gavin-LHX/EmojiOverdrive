@@ -75,7 +75,7 @@ final class HapticsController {
             try engine.start()
             try player.start(atTime: CHHapticTimeImmediate)
         } catch {
-            configuration = nil
+            self.configuration = nil
             stopHardware()
         }
     }
