@@ -4,12 +4,16 @@ struct EmojiOrbitCanvas: View {
     let snapshot: RenderSnapshot
 
     var body: some View {
+        let safetyReduced = snapshot.reduceMotion || snapshot.dimFlashingLights
+
         Group {
             if snapshot.isRunning {
                 TimelineView(
                     .animation(
-                        minimumInterval: 1.0 / 60.0,
-                        paused: snapshot.reduceMotion
+                        // Safety modes still receive low-rate deadline checks,
+                        // but no longer run a 60 fps animation timeline.
+                        minimumInterval: safetyReduced ? 0.5 : 1.0 / 60.0,
+                        paused: false
                     )
                 ) { timeline in
                     Canvas(opaque: false, colorMode: .extendedLinear, rendersAsynchronously: true) { context, size in
@@ -21,7 +25,7 @@ struct EmojiOrbitCanvas: View {
                         EmojiOrbitRenderer.draw(
                             context: &context,
                             size: size,
-                            elapsed: liveElapsed,
+                            elapsed: safetyReduced ? 0 : liveElapsed,
                             snapshot: snapshot
                         )
                     }
@@ -47,12 +51,13 @@ private enum EmojiOrbitRenderer {
 
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let minSide = min(size.width, size.height)
+        let safetyReduced = snapshot.reduceMotion || snapshot.dimFlashingLights
         let beat = elapsed * snapshot.bpm / 60
         let phase = beat - floor(beat)
         // Continuous at the beat boundary. The 300 BPM pulse changes only object
         // size/position; it never flips full-frame luminance or the torch.
-        let kick = snapshot.reduceMotion ? 0 : 0.5 + 0.5 * cos(phase * .pi * 2)
-        let motion = snapshot.reduceMotion ? 0 : 1.0
+        let kick = safetyReduced ? 0 : 0.5 + 0.5 * cos(phase * .pi * 2)
+        let motion = safetyReduced ? 0 : 1.0
         let minimumCount = min(6, snapshot.emoji.count)
         let densityCount = Int((Double(snapshot.emoji.count) * snapshot.orbitDensity).rounded())
             .clamped(to: minimumCount...snapshot.emoji.count)
@@ -61,7 +66,7 @@ private enum EmojiOrbitRenderer {
             context: &context,
             center: center,
             minSide: minSide,
-            beat: snapshot.reduceMotion ? 0 : beat,
+            beat: safetyReduced ? 0 : beat,
             intensity: snapshot.intensity
         )
 
@@ -159,10 +164,11 @@ private enum EmojiOrbitRenderer {
         kick: Double,
         snapshot: RenderSnapshot
     ) {
-        let scale: CGFloat = snapshot.reduceMotion
+        let safetyReduced = snapshot.reduceMotion || snapshot.dimFlashingLights
+        let scale: CGFloat = safetyReduced
             ? 1.0
             : 1 + CGFloat(kick * snapshot.intensity) * 0.24
-        let jitterAmplitude: CGFloat = snapshot.reduceMotion
+        let jitterAmplitude: CGFloat = safetyReduced
             ? 0
             : minSide * 0.018 * CGFloat(snapshot.intensity)
         let jitterX = CGFloat(smoothNoise(beat * 2.7, seed: 41)) * jitterAmplitude
@@ -170,7 +176,7 @@ private enum EmojiOrbitRenderer {
 
         var layer = context
         layer.translateBy(x: center.x + jitterX, y: center.y + jitterY)
-        layer.rotate(by: .radians(sin(beat * 0.57) * 0.16 * (snapshot.reduceMotion ? 0 : 1)))
+        layer.rotate(by: .radians(sin(beat * 0.57) * 0.16 * (safetyReduced ? 0 : 1)))
         layer.scaleBy(x: scale, y: scale)
 
         let emoji = snapshot.emoji[Int(floor(beat / 4)).positiveModulo(snapshot.emoji.count)]

@@ -18,6 +18,11 @@ struct MetalBackgroundView: UIViewRepresentable {
             return view
         }
 
+        let shouldRun = snapshot.isRunning
+            && snapshot.elapsedAtSnapshot < snapshot.sessionDuration
+        let shouldAnimate = shouldRun
+            && !snapshot.reduceMotion
+            && !snapshot.dimFlashingLights
         let view = MTKView(frame: .zero, device: device)
         view.colorPixelFormat = .rgba16Float
         view.colorspace = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
@@ -25,14 +30,17 @@ struct MetalBackgroundView: UIViewRepresentable {
         view.framebufferOnly = true
         view.preferredFramesPerSecond = 60
         view.enableSetNeedsDisplay = false
-        view.isPaused = !snapshot.isRunning
+        view.isPaused = !shouldAnimate
         view.isOpaque = true
 
         if let layer = view.layer as? CAMetalLayer {
-            layer.wantsExtendedDynamicRangeContent = snapshot.isRunning && !snapshot.dimFlashingLights
+            layer.wantsExtendedDynamicRangeContent = shouldRun && !snapshot.dimFlashingLights
         }
 
         context.coordinator.attach(to: view)
+        if shouldRun && !shouldAnimate {
+            view.draw()
+        }
         return view
     }
 
@@ -40,7 +48,9 @@ struct MetalBackgroundView: UIViewRepresentable {
         context.coordinator.update(snapshot: snapshot)
         let shouldRun = snapshot.isRunning
             && snapshot.elapsedAtSnapshot < snapshot.sessionDuration
-        let shouldAnimate = shouldRun && !snapshot.reduceMotion
+        let shouldAnimate = shouldRun
+            && !snapshot.reduceMotion
+            && !snapshot.dimFlashingLights
         uiView.isPaused = !shouldAnimate
         if let layer = uiView.layer as? CAMetalLayer {
             layer.wantsExtendedDynamicRangeContent = shouldRun && !snapshot.dimFlashingLights
@@ -137,7 +147,7 @@ struct MetalBackgroundView: UIViewRepresentable {
                 resolution: SIMD2(Float(view.drawableSize.width), Float(view.drawableSize.height)),
                 time: Float(elapsed),
                 intensity: Float(snapshot.intensity),
-                motion: snapshot.reduceMotion ? 0 : 1,
+                motion: snapshot.reduceMotion || snapshot.dimFlashingLights ? 0 : 1,
                 dimFlashing: snapshot.dimFlashingLights ? 1 : 0
             )
 

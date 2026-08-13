@@ -71,7 +71,7 @@ BUNDLE_ID=com.你的域名.EmojiOverdrive \
 bash scripts/build_on_macos.sh ipa
 ```
 
-成功后 IPA 在 `build/export/`。Debugging IPA 只能安装到你的 provisioning profile 覆盖的已注册设备。TestFlight/App Store 或 Ad Hoc 分发需要在 Xcode Organizer 中选择相应分发方式，或用 Xcode 生成匹配的 `ExportOptions.plist`。
+成功后 IPA 在 `build/export/`。Debugging IPA 只能安装到你的 provisioning profile 覆盖的已注册设备。TestFlight/App Store 或 Release Testing 分发需要在 Xcode Organizer 中选择相应分发方式，或用 Xcode 生成匹配的 `ExportOptions.plist`。
 
 ## Windows 静态验证
 
@@ -84,7 +84,7 @@ python scripts/validate_project.py
 
 ## 签名与分发说明
 
-`BUNDLE_ID` 必须是你的 Apple Developer 账号能够注册/签署的唯一标识；示例默认值只用于本地工程占位。`ipa` 动作使用 automatic signing 与当前 Xcode 的 Debugging 导出方法，并会确认导出目录中确实存在 IPA、再运行 ZIP 完整性检查。Ad Hoc、TestFlight 或 App Store 需要对应证书、provisioning profile 和分发用 ExportOptions。
+`BUNDLE_ID` 必须是你的 Apple Developer 账号能够注册/签署的唯一标识；示例默认值只用于本地工程占位。`ipa` 动作使用 automatic signing 与当前 Xcode 的 Debugging 导出方法，并会确认导出目录中确实存在 IPA、再运行 ZIP 完整性检查。Release Testing、TestFlight 或 App Store 需要对应证书、provisioning profile 和分发用 ExportOptions。
 
 ## GitHub Actions IPA
 
