@@ -1,0 +1,64 @@
+name: Build IPA
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Static validation
+        run: |
+          python3 -m pip install --user -r requirements.txt
+          python3 scripts/validate_project.py
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+      - name: Run simulator tests
+        run: |
+          xcodebuild \
+            -project EmojiOverdrive.xcodeproj \
+            -scheme EmojiOverdrive \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=latest' \
+            -derivedDataPath build/DerivedData-Simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+      - name: Build unsigned device app
+        run: |
+          xcodebuild \
+            -project EmojiOverdrive.xcodeproj \
+            -scheme EmojiOverdrive \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData-Device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            build
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH="build/DerivedData-Device/Build/Products/Release-iphoneos/EmojiOverdrive.app"
+          test -d "$APP_PATH"
+          mkdir -p build/Payload
+          ditto "$APP_PATH" build/Payload/EmojiOverdrive.app
+          ditto -c -k --sequesterRsrc --keepParent build/Payload build/EmojiOverdrive-unsigned.ipa
+          unzip -t build/EmojiOverdrive-unsigned.ipa
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EmojiOverdrive-unsigned-ipa
+          path: build/EmojiOverdrive-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
